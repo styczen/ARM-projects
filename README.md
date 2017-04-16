@@ -1,2 +1,2 @@
-# ARM_projects
+### ARM projects
 Simple projects using STM32F4 ARM microprocessor
