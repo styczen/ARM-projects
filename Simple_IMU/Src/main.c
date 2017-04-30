@@ -80,11 +80,13 @@ float Mag_Gauss_z;
 #define CS_GYRO_LOW HAL_GPIO_WritePin(CS_GYRO_GPIO_Port, CS_GYRO_Pin, 0)
 #define CS_GYRO_HIGH HAL_GPIO_WritePin(CS_GYRO_GPIO_Port, CS_GYRO_Pin, 1)
 
+#define RAD_TO_DEG 180/M_PI
+
 //float Angle_x; //degrees
 //float Angle_y; //degrees
 //float Angle_z; //degrees
 
-float pitch, roll, pitch_acc, roll_acc;
+float pitch, roll, pitch_acc, roll_acc, yaw;
 int16_t pitch_, roll_;
 /* USER CODE END PV */
 
@@ -104,7 +106,7 @@ void sendSettings(uint8_t address, uint8_t settings);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim->Instance == TIM10) {
 		uint8_t size, Tx[100] = {0};
-		size = sprintf((char*)Tx, "%d#%d@", (int16_t)pitch, (int16_t)roll);
+		size = sprintf((char*)Tx, "%d#%d$%d@", (int16_t)pitch, (int16_t)roll, (int16_t)yaw);
 		HAL_UART_Transmit_IT(&huart1, Tx, size);
 	}
 }
@@ -247,13 +249,31 @@ int main(void)
 
 		pitch += Angular_velocity_y*dt; //degress from gyro
 		roll += Angular_velocity_x*dt; //degress from gyro
+		yaw += Angular_velocity_z*dt;
 
-		pitch_acc = atan2f(Accel_g_x, Accel_g_z)*180/M_PI; //around x from accelerometer
+//		if (fabsf(Accel_g_z - Accel_g_y) < 0.1) {
+//			pitch_acc = atan2f(Accel_g_x, Accel_g_z)*RAD_TO_DEG; //around y from accelerometer
+//			roll_acc = 0;
+//		} else if (fabsf(Accel_g_z - Accel_g_x) < 0.1) {
+//			pitch_acc = 0; //around y from accelerometer
+//			roll_acc = atan2f(Accel_g_y, Accel_g_z)*RAD_TO_DEG; //around x from accelerometer
+//		} else {
+//			pitch_acc = atan2f(Accel_g_x, Accel_g_z)*RAD_TO_DEG; //around y from accelerometer
+//			roll_acc = atan2f(Accel_g_y, Accel_g_z)*RAD_TO_DEG; //around x from accelerometer
+//		}
+
+		pitch_acc = atan2f(Accel_g_x, Accel_g_z)*RAD_TO_DEG; //around y from accelerometer
+		roll_acc = atan2f(Accel_g_y, Accel_g_z)*RAD_TO_DEG; //around x from accelerometer
+
 		pitch = 0.98 * pitch + 0.02 * pitch_acc;
-
-		roll_acc = atan2f(Accel_g_y, Accel_g_z)*180/M_PI; //around y from accelerometer
 		roll = 0.98 * roll + 0.02 * roll_acc;
 
+		if (fabsf(pitch - 90) < 10 || fabsf(pitch - (-90)) < 10) {
+			roll = 0;
+		}
+		if (fabsf(roll - 90) < 10 || fabsf(roll - (-90)) < 10) {
+			pitch = 0;
+		}
 		pitch_ = (int16_t)pitch;
 		roll_ = (int16_t)roll;
 
@@ -386,7 +406,7 @@ static void MX_USART1_UART_Init(void)
 {
 
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 9600;
+  huart1.Init.BaudRate = 115200;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
