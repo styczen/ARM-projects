@@ -116,36 +116,40 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-void HAL_SYSTICK_Callback(void) {
-	static uint32_t counter = 0;
+void HAL_SYSTICK_Callback(void) { /* 100kHz interrupt */
+	static uint32_t counter = 0, battery_counter = 0;
 	counter++;
+	battery_counter++;
 	if (!key_lock && !HAL_GPIO_ReadPin(switch_GPIO_Port, switch_Pin)) {
 		key_lock = 1;
 		cnt++;
-		if (cnt > 3) cnt = 1;
+		if (cnt > 1) cnt = 1;
 		switch (cnt) {
 		case 1:
 			pid.pGain = (TIM4->CNT/2);
 			break;
-		case 2:
-			pid.iGain = 0.01 * (TIM4->CNT/2);
-			break;
-		case 3:
-			pid.dGain = 0.01 * (TIM4->CNT/2);
-			break;
+//		case 2:
+//			pid.iGain = 0.01 * (TIM4->CNT/2);
+//			break;
+//		case 3:
+//			pid.dGain = 0.01 * (TIM4->CNT/2);
+//			break;
 		default:
 			break;
 		}
 	} else if (key_lock && HAL_GPIO_ReadPin(switch_GPIO_Port, switch_Pin)) key_lock = 0;
 
-	if (counter == 1000) {
+	if (counter == 500) { /* every 0.5 sec */
 		counter = 0;
-		size = sprintf((char*)data_uart, "P: %d\tI: %d\tD: %d\tenc: %d\tcnt: %d\n\r",
+		size = sprintf((char*)data_uart, "P: %d\tI: %d/100\tD: %d/100\tenc: %d\tcnt: %d\n\r",
 				(int)pid.pGain, (int)(100*pid.iGain), (int)(100*pid.dGain), (int)encoder, (int)cnt);
 		HAL_UART_Transmit_IT(&huart2, data_uart, size);
 	}
 //	\tI: %d\tD: %d\tenc: %d\tcnt: %d
-
+	if (battery_counter == 10000) { /* every 10 sec */
+		battery_counter = 0;
+		HAL_GPIO_TogglePin(led_GPIO_Port, led_Pin);
+	}
 }
 
 void MPU6050_config(void);
@@ -153,6 +157,7 @@ float MPU6050_calibration(void);
 float estimate_angle(void);
 float update_PID(PID * pid, float error, float position);
 void motor_plant(float drive, float position);
+uint8_t battery_low(void);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -163,7 +168,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	pid.pGain = 80;
+	pid.pGain = 93;
 	pid.iGain = 0;
 	pid.dGain = 0;
 	pid.iMax = 1000;
@@ -199,7 +204,8 @@ int main(void)
 	HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
 
 	MPU6050_config();
-	set_point = MPU6050_calibration();
+//	set_point = MPU6050_calibration();
+	set_point = -1;
 	HAL_I2C_Mem_Read_IT(&hi2c1, MPU6050_ADDRESS, MPU6050_WHO_AM_I, 1, &who, 1);
 
 //	size = sprintf((char*)data_uart, "---START---\n\r");
@@ -396,7 +402,7 @@ static void MX_TIM4_Init(void)
   htim4.Instance = TIM4;
   htim4.Init.Prescaler = 0;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 400;
+  htim4.Init.Period = 1000;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
   sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
@@ -606,6 +612,10 @@ void motor_plant(float drive, float position) {
 	} else {
 		DC_DISABLE;
 	}
+}
+
+uint8_t battery_low(void) {
+	return 1;
 }
 /* USER CODE END 4 */
 
