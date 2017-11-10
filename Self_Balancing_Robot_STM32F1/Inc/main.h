@@ -48,12 +48,18 @@
 
 #define led_Pin GPIO_PIN_13
 #define led_GPIO_Port GPIOC
-#define DC_ENABLE_Pin GPIO_PIN_8
-#define DC_ENABLE_GPIO_Port GPIOA
-#define DC_IN1_Pin GPIO_PIN_9
-#define DC_IN1_GPIO_Port GPIOA
-#define DC_IN2_Pin GPIO_PIN_10
-#define DC_IN2_GPIO_Port GPIOA
+#define DC_IN1_LEFT_Pin GPIO_PIN_6
+#define DC_IN1_LEFT_GPIO_Port GPIOA
+#define DC_IN2_LEFT_Pin GPIO_PIN_7
+#define DC_IN2_LEFT_GPIO_Port GPIOA
+#define DC_ENABLE_RIGHT_Pin GPIO_PIN_8
+#define DC_ENABLE_RIGHT_GPIO_Port GPIOA
+#define DC_IN1_RIGHT_Pin GPIO_PIN_9
+#define DC_IN1_RIGHT_GPIO_Port GPIOA
+#define DC_IN2_RIGHT_Pin GPIO_PIN_10
+#define DC_IN2_RIGHT_GPIO_Port GPIOA
+#define DC_ENABLE_LEFT_Pin GPIO_PIN_11
+#define DC_ENABLE_LEFT_GPIO_Port GPIOA
 #define switch_Pin GPIO_PIN_5
 #define switch_GPIO_Port GPIOB
 
