@@ -40,12 +40,14 @@
 #include "stm32f4xx_hal.h"
 
 /* USER CODE BEGIN Includes */
-
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
+
+CRC_HandleTypeDef hcrc;
 
 TIM_HandleTypeDef htim2;
 
@@ -56,7 +58,12 @@ DMA_HandleTypeDef hdma_usart1_tx;
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 uint16_t joystick[2];
-volatile uint16_t pulse_count;
+volatile int16_t pulse_count;
+uint8_t rx_data, tx_data[30];
+
+uint32_t a32;
+uint16_t a16;
+uint8_t a8;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -66,10 +73,23 @@ static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_CRC_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	if (rx_data == '#') {
+		pulse_count = TIM2->CNT/2;
+		tx_data[0] = (uint8_t)(joystick[0]);
+		tx_data[1] = (uint8_t)(joystick[0]>>8);
+		tx_data[2] = (uint8_t)(joystick[1]);
+		tx_data[3] = (uint8_t)(joystick[1]>>8);
+		tx_data[4] = (uint8_t)(pulse_count);
+		tx_data[5] = (uint8_t)(pulse_count>>8);
+		HAL_UART_Transmit_DMA(&huart1, tx_data, 6);
+	}
+	HAL_UART_Receive_DMA(&huart1, &rx_data, 1);
+}
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -81,7 +101,7 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 //	uint8_t Received[10];
-	uint8_t data[30];
+
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -106,18 +126,35 @@ int main(void)
   MX_ADC1_Init();
   MX_USART1_UART_Init();
   MX_TIM2_Init();
+  MX_CRC_Init();
 
   /* USER CODE BEGIN 2 */
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*) joystick, 2);
 	HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+	HAL_UART_Receive_DMA(&huart1, &rx_data, 1);
+
+	uint8_t tab[6] = {
+					0x1a,
+					0x2b,
+					0x3c,
+					0x4d,
+					0x5e,
+					0x6f,
+					};
+
+	a32 = HAL_CRC_Calculate(&hcrc, (uint32_t*)tab, 6);
+	a16 = HAL_CRC_Calculate(&hcrc, (uint32_t*)tab, 6);
+	a8 = HAL_CRC_Calculate(&hcrc, (uint32_t*)tab, 6);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
-		sprintf((char*) data, "rx:%d\try:%d\tenc:%d\n\r", joystick[0], joystick[1], pulse_count);
-		HAL_UART_Transmit_DMA(&huart1, data, 30);
-		pulse_count = TIM2->CNT/2;
+//		sprintf((char*) tx_data, "%d %d %d\n", joystick[0], joystick[1], pulse_count);
+
+
+
 //	  HAL_UART_Receive_DMA(&huart1, Received, 10);
 //	  HAL_Delay(100);
   /* USER CODE END WHILE */
@@ -231,6 +268,17 @@ static void MX_ADC1_Init(void)
 
 }
 
+/* CRC init function */
+static void MX_CRC_Init(void)
+{
+  hcrc.Instance = CRC;
+  if (HAL_CRC_Init(&hcrc) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
+
 /* TIM2 init function */
 static void MX_TIM2_Init(void)
 {
@@ -241,7 +289,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 0;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 198;
+  htim2.Init.Period = 400;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
   sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
