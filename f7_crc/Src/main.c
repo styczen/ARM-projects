@@ -54,9 +54,9 @@ UART_HandleTypeDef huart1;
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
-
-uint8_t rx_data, tx_data[20], crc;
+uint8_t RX_cmd[10], TX_cmd[10];
 uint16_t adc_data[2];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -71,17 +71,61 @@ static void MX_ADC1_Init(void);
 /* Private function prototypes -----------------------------------------------*/
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart1) {
-		if (rx_data == '#') {
-			tx_data[0] = 1;
-			tx_data[1] = (uint8_t) (adc_data[0]);
-			tx_data[2] = (uint8_t) (adc_data[0] >> 8);
-			tx_data[3] = (uint8_t) (adc_data[1]);
-			tx_data[4] = (uint8_t) (adc_data[1] >> 8);
-			crc = HAL_CRC_Calculate(&hcrc, (uint32_t*)tx_data, 5);
-			tx_data[5] = (uint8_t) crc;
-			HAL_UART_Transmit_IT(&huart1, tx_data, 6);
+//		if (RX_cmd == '#') {
+//			TX_cmd[0] = 1;
+//			TX_cmd[1] = (uint8_t) (adc_data[0]);
+//			TX_cmd[2] = (uint8_t) (adc_data[0] >> 8);
+//			TX_cmd[3] = (uint8_t) (adc_data[1]);
+//			TX_cmd[4] = (uint8_t) (adc_data[1] >> 8);
+//			crc = HAL_CRC_Calculate(&hcrc, (uint32_t*)TX_cmd, 5);
+//			TX_cmd[5] = (uint8_t) crc;
+//			HAL_UART_Transmit_IT(&huart1, TX_cmd, 6);
+//		}
+//		HAL_UART_Receive_IT(&huart1, &RX_cmd, 1);
+
+		switch (RX_cmd[0]) {
+		case 1: //DebugSteeringSystem
+			TX_cmd[0] = 1;
+			TX_cmd[1] = (uint8_t) (adc_data[0]);
+			TX_cmd[2] = (uint8_t) (adc_data[0] >> 8);
+			TX_cmd[3] = (uint8_t) (adc_data[1]);
+			TX_cmd[4] = (uint8_t) (adc_data[1] >> 8);
+			TX_cmd[5] = HAL_CRC_Calculate(&hcrc, (uint32_t*)TX_cmd, 5); //CRC
+			HAL_UART_Transmit_IT(&huart1, TX_cmd, 6);
+			break;
+		case 2: //DebugSpeed
+			TX_cmd[0] = 2;
+			TX_cmd[1] = (uint8_t) (adc_data[0]);
+			TX_cmd[2] = (uint8_t) (adc_data[0] >> 8);
+			TX_cmd[3] = (uint8_t) (adc_data[1]);
+			TX_cmd[4] = (uint8_t) (adc_data[1] >> 8);
+			TX_cmd[5] = HAL_CRC_Calculate(&hcrc, (uint32_t*)TX_cmd, 5); //CRC
+			HAL_UART_Transmit_IT(&huart1, TX_cmd, 6);
+			break;
+		case 3: //DebugEncodersBrakesIndicators
+			TX_cmd[0] = 3;
+			TX_cmd[1] = (uint8_t) (adc_data[0]);
+			TX_cmd[2] = (uint8_t) (adc_data[0] >> 8);
+			TX_cmd[3] = (uint8_t) (adc_data[1]);
+			TX_cmd[4] = (uint8_t) (adc_data[1] >> 8);
+			TX_cmd[5] = (uint8_t) (adc_data[0] & 0b00000011);
+			TX_cmd[6] = HAL_CRC_Calculate(&hcrc, (uint32_t*)TX_cmd, 6); //CRC
+			HAL_UART_Transmit_IT(&huart1, TX_cmd, 7);
+			break;
+		case 4:
+			// receive control from ROS
+			// CRC check, if data not valid reject
+			if (HAL_CRC_Calculate(&hcrc, (uint32_t*)TX_cmd, 7) != RX_cmd[8])
+				break;
+//			steering_wheel = RX_cmd[1] + (RX_cmd[2] << 8);
+//			speed = RX_cmd[3] + (RX_cmd[4] << 8);
+//			brake_value = RX_cmd[5] + (RX_cmd[6] << 8);
+//			gas_cut_off = RX_cmd[7] >> 0;
+//			dir = RX_cmd[7] >> 1;
+			break;
 		}
-		HAL_UART_Receive_IT(&huart1, &rx_data, 1);
+		HAL_UART_Receive_IT(&huart1, RX_cmd, 9);
+
 	}
 }
 /* USER CODE END PFP */
@@ -121,16 +165,18 @@ int main(void)
   MX_ADC1_Init();
 
   /* USER CODE BEGIN 2 */
-//	uint8_t tab[6] = { 0x1a, 0x2b, 0x3c, 0x4d, 0x5e, 0x6f, };
+
 
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_data, 2);
-	HAL_UART_Receive_IT(&huart1, &rx_data, 1);
+	HAL_UART_Receive_IT(&huart1, RX_cmd, 9);
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
-
+//		HAL_UART_Transmit_DMA(&huart1, tab, 6);
 //		a32 = HAL_CRC_Calculate(&hcrc, (uint32_t*) tab, 6);
 //		a16 = HAL_CRC_Calculate(&hcrc, (uint32_t*) tab, 6);
 //		a8 = HAL_CRC_Calculate(&hcrc, (uint32_t*) tab, 6);
@@ -266,9 +312,10 @@ static void MX_CRC_Init(void)
 
   hcrc.Instance = CRC;
   hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_DISABLE;
-  hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_ENABLE;
-  hcrc.Init.GeneratingPolynomial = 7;
+  hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_DISABLE;
+  hcrc.Init.GeneratingPolynomial = 47;
   hcrc.Init.CRCLength = CRC_POLYLENGTH_8B;
+  hcrc.Init.InitValue = 0;
   hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
   hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
   hcrc.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
