@@ -51,7 +51,7 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
+	uint8_t tab[4];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -70,7 +70,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
- 	uint8_t tab[4];
+
  	tab[0] = 0xff;
  	tab[1] = 0xef;
  	tab[2] = 0x11;

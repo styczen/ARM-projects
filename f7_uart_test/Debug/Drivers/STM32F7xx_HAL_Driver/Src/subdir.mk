@@ -68,8 +68,8 @@ C_DEPS += \
 Drivers/STM32F7xx_HAL_Driver/Src/%.o: ../Drivers/STM32F7xx_HAL_Driver/Src/%.c
 	@echo 'Building file: $<'
 	@echo 'Invoking: MCU GCC Compiler'
-	@echo $(PWD)
-	arm-none-eabi-gcc -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16 '-D__weak=__attribute__((weak))' '-D__packed="__attribute__((__packed__))"' -DUSE_HAL_DRIVER -DSTM32F767xx -I"/home/bartek/Documents/stm32cube_ws/f7_uart_test/Inc" -I"/home/bartek/Documents/stm32cube_ws/f7_uart_test/Drivers/STM32F7xx_HAL_Driver/Inc" -I"/home/bartek/Documents/stm32cube_ws/f7_uart_test/Drivers/STM32F7xx_HAL_Driver/Inc/Legacy" -I"/home/bartek/Documents/stm32cube_ws/f7_uart_test/Drivers/CMSIS/Device/ST/STM32F7xx/Include" -I"/home/bartek/Documents/stm32cube_ws/f7_uart_test/Drivers/CMSIS/Include" -I"/home/bartek/Documents/stm32cube_ws/f7_uart_test/Inc"  -Og -g3 -Wall -fmessage-length=0 -ffunction-sections -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" -o "$@" "$<"
+	@echo %cd%
+	arm-none-eabi-gcc -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16 '-D__weak=__attribute__((weak))' '-D__packed="__attribute__((__packed__))"' -DUSE_HAL_DRIVER -DSTM32F767xx -I"A:/Google_Drive/Programowanie/ARM_projects/f7_uart_test/Inc" -I"A:/Google_Drive/Programowanie/ARM_projects/f7_uart_test/Drivers/STM32F7xx_HAL_Driver/Inc" -I"A:/Google_Drive/Programowanie/ARM_projects/f7_uart_test/Drivers/STM32F7xx_HAL_Driver/Inc/Legacy" -I"A:/Google_Drive/Programowanie/ARM_projects/f7_uart_test/Drivers/CMSIS/Device/ST/STM32F7xx/Include" -I"A:/Google_Drive/Programowanie/ARM_projects/f7_uart_test/Drivers/CMSIS/Include" -I"A:/Google_Drive/Programowanie/ARM_projects/f7_uart_test/Inc"  -Og -g3 -Wall -fmessage-length=0 -ffunction-sections -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
